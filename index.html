@@ -3,66 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ABC Explorer for Kids</title>
+    <title>ABC Explorer</title>
     <style>
-        body { 
-            margin: 0; 
-            background: #FFEB3B; 
-            font-family: 'Arial Rounded MT Bold', sans-serif; 
-            text-align: center; 
-            overflow: hidden; 
-            user-select: none;
-        }
-        #game-container { padding: 15px; }
-        .lives { font-size: 35px; margin: 10px; color: #F44336; filter: drop-shadow(2px 2px 0px white); }
-        .target-box { 
-            background: white; border-radius: 25px; padding: 15px; 
-            margin: 10px auto; width: 85%; border: 6px solid #2196F3;
-            box-shadow: 0 6px 0px #1976D2;
-        }
-        .target-letter { font-size: 100px; color: #2196F3; line-height: 1; }
-        .grid { 
-            display: grid; grid-template-columns: repeat(3, 1fr); 
-            gap: 15px; padding: 15px; min-height: 200px;
-        }
-        .letter-btn { 
-            background: #4CAF50; color: white; font-size: 50px; 
-            padding: 15px 0; border-radius: 20px; 
-            box-shadow: 0 8px 0px #2E7D32; border: none; cursor: pointer;
-        }
-        .letter-btn:active { box-shadow: 0 2px 0px #2E7D32; transform: translateY(6px); }
-        
-        #reward-popup { 
-            display: none; position: fixed; top: 50%; left: 50%; 
-            transform: translate(-50%, -50%); background: white; 
-            padding: 30px; border-radius: 40px; border: 10px solid #FF9800; 
-            z-index: 100; width: 80%; box-shadow: 0 0 100px rgba(0,0,0,0.3);
-        }
-        #game-over { 
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: #F44336; color: white; padding-top: 100px; z-index: 200; 
-        }
+        body { margin: 0; background: #FFEB3B; font-family: sans-serif; text-align: center; overflow: hidden; }
+        #start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #FFEB3B; z-index: 500; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .play-btn { padding: 30px 60px; font-size: 40px; border-radius: 50px; background: #4CAF50; color: white; border: none; box-shadow: 0 10px #2E7D32; cursor: pointer; }
+        .lives { font-size: 30px; margin: 10px; color: #F44336; }
+        .target-box { background: white; border-radius: 20px; padding: 15px; margin: 10px auto; width: 80%; border: 5px solid #2196F3; }
+        .target-letter { font-size: 80px; color: #2196F3; font-weight: bold; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; padding: 20px; }
+        .letter-btn { background: #4CAF50; color: white; font-size: 40px; padding: 20px 0; border-radius: 20px; box-shadow: 0 8px #2E7D32; border: none; }
+        #reward-popup { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 40px; border: 8px solid #FF9800; z-index: 100; width: 70%; }
     </style>
 </head>
 <body>
 
+<div id="start-screen">
+    <h1 style="font-size: 40px; color: #2196F3;">ABC Explorer</h1>
+    <button class="play-btn" onclick="startGame()">PLAY</button>
+</div>
+
 <div id="game-container">
     <div class="lives" id="life-display">❤️❤️❤️</div>
     <div class="target-box">
-        <div style="font-size: 20px; font-weight: bold; color: #555;">Find the Letter:</div>
         <div class="target-letter" id="current-target">A</div>
     </div>
     <div class="grid" id="letter-grid"></div>
 </div>
 
 <div id="reward-popup">
-    <div id="reward-emoji" style="font-size: 140px;"></div>
-    <h2 id="reward-text" style="color: #333; font-size: 38px; margin: 15px 0;"></h2>
-</div>
-
-<div id="game-over">
-    <h1>Oops!</h1>
-    <button onclick="location.reload()" style="padding: 20px; font-size: 20px; border-radius: 50px;">PLAY AGAIN</button>
+    <div id="reward-emoji" style="font-size: 100px;"></div>
+    <h2 id="reward-text" style="color: #333;"></h2>
 </div>
 
 <script>
@@ -85,15 +56,18 @@
 
     let currentIndex = 0;
     let lives = 3;
-    let soundEnabled = false;
 
     function speak(text) {
-        if (!soundEnabled) return;
         window.speechSynthesis.cancel();
         const msg = new SpeechSynthesisUtterance(text);
-        msg.pitch = 1.7; // Kid voice
+        msg.pitch = 1.7;
         msg.rate = 0.8;
         window.speechSynthesis.speak(msg);
+    }
+
+    function startGame() {
+        document.getElementById('start-screen').style.display = 'none';
+        setupRound();
     }
 
     function setupRound() {
@@ -102,7 +76,7 @@
         const target = alphabet[currentIndex];
         document.getElementById('current-target').innerText = target;
         
-        if (soundEnabled) speak("Find the letter " + target);
+        speak("Find the letter " + target);
 
         let choices = [target];
         while(choices.length < 6) {
@@ -115,10 +89,7 @@
             const btn = document.createElement('button');
             btn.className = 'letter-btn';
             btn.innerText = letter;
-            btn.onclick = () => {
-                soundEnabled = true; // Enable sound on first button tap
-                checkLetter(letter);
-            };
+            btn.onclick = () => checkLetter(letter);
             grid.appendChild(btn);
         });
     }
@@ -136,12 +107,12 @@
                 currentIndex++;
                 if(currentIndex >= 26) location.reload();
                 else setupRound();
-            }, 2500);
+            }, 2000);
         } else {
             lives--;
             speak("Try again!");
             updateLives();
-            if(lives <= 0) document.getElementById('game-over').style.display = 'block';
+            if(lives <= 0) location.reload();
         }
     }
 
@@ -149,9 +120,6 @@
         let h = ""; for(let i=0; i<lives; i++) h += "❤️";
         document.getElementById('life-display').innerText = h || "💔";
     }
-
-    // This makes sure buttons appear even if everything else fails
-    window.onload = setupRound;
 </script>
 </body>
 </html>
