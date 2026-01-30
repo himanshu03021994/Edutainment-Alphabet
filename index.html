@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ABC Explorer for Kids</title>
+    <style>
+        body { 
+            margin: 0; 
+            background: #FFEB3B; 
+            font-family: 'Arial Rounded MT Bold', sans-serif; 
+            text-align: center; 
+            overflow: hidden; 
+            user-select: none;
+        }
+        #game-container { padding: 15px; }
+        .lives { font-size: 35px; margin: 10px; color: #F44336; filter: drop-shadow(2px 2px 0px white); }
+        .target-box { 
+            background: white; border-radius: 25px; padding: 15px; 
+            margin: 10px auto; width: 85%; border: 6px solid #2196F3;
+            box-shadow: 0 6px 0px #1976D2;
+        }
+        .target-letter { font-size: 100px; color: #2196F3; line-height: 1; }
+        .grid { 
+            display: grid; grid-template-columns: repeat(3, 1fr); 
+            gap: 15px; padding: 15px; min-height: 200px;
+        }
+        .letter-btn { 
+            background: #4CAF50; color: white; font-size: 50px; 
+            padding: 15px 0; border-radius: 20px; 
+            box-shadow: 0 8px 0px #2E7D32; border: none; cursor: pointer;
+        }
+        .letter-btn:active { box-shadow: 0 2px 0px #2E7D32; transform: translateY(6px); }
+        
+        #reward-popup { 
+            display: none; position: fixed; top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); background: white; 
+            padding: 30px; border-radius: 40px; border: 10px solid #FF9800; 
+            z-index: 100; width: 80%; box-shadow: 0 0 100px rgba(0,0,0,0.3);
+        }
+        #game-over { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: #F44336; color: white; padding-top: 100px; z-index: 200; 
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div class="lives" id="life-display">❤️❤️❤️</div>
+    <div class="target-box">
+        <div style="font-size: 20px; font-weight: bold; color: #555;">Find the Letter:</div>
+        <div class="target-letter" id="current-target">A</div>
+    </div>
+    <div class="grid" id="letter-grid"></div>
+</div>
+
+<div id="reward-popup">
+    <div id="reward-emoji" style="font-size: 140px;"></div>
+    <h2 id="reward-text" style="color: #333; font-size: 38px; margin: 15px 0;"></h2>
+</div>
+
+<div id="game-over">
+    <h1>Oops!</h1>
+    <button onclick="location.reload()" style="padding: 20px; font-size: 20px; border-radius: 50px;">PLAY AGAIN</button>
+</div>
+
+<script>
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+    const associations = {
+        'A': { word: 'Apple', img: '🍎' }, 'B': { word: 'Ball', img: '⚽' },
+        'C': { word: 'Cat', img: '🐱' }, 'D': { word: 'Dog', img: '🐶' },
+        'E': { word: 'Egg', img: '🥚' }, 'F': { word: 'Fish', img: '🐟' },
+        'G': { word: 'Goat', img: '🐐' }, 'H': { word: 'Hat', img: '🎩' },
+        'I': { word: 'Ice Cream', img: '🍦' }, 'J': { word: 'Jam', img: '🍓' },
+        'K': { word: 'Kite', img: '🪁' }, 'L': { word: 'Lion', img: '🦁' },
+        'M': { word: 'Monkey', img: '🐒' }, 'N': { word: 'Nose', img: '👃' },
+        'O': { word: 'Orange', img: '🍊' }, 'P': { word: 'Pig', img: '🐷' },
+        'Q': { word: 'Queen', img: '👸' }, 'R': { word: 'Rabbit', img: '🐰' },
+        'S': { word: 'Sun', img: '☀️' }, 'T': { word: 'Train', img: '🚂' },
+        'U': { word: 'Umbrella', img: '☂️' }, 'V': { word: 'Van', img: '🚐' },
+        'W': { word: 'Watch', img: '⌚' }, 'X': { word: 'Xylophone', img: '🎹' },
+        'Y': { word: 'Yo-Yo', img: '🪀' }, 'Z': { word: 'Zebra', img: '🦓' }
+    };
+
+    let currentIndex = 0;
+    let lives = 3;
+    let soundEnabled = false;
+
+    function speak(text) {
+        if (!soundEnabled) return;
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance(text);
+        msg.pitch = 1.7; // Kid voice
+        msg.rate = 0.8;
+        window.speechSynthesis.speak(msg);
+    }
+
+    function setupRound() {
+        const grid = document.getElementById('letter-grid');
+        grid.innerHTML = '';
+        const target = alphabet[currentIndex];
+        document.getElementById('current-target').innerText = target;
+        
+        if (soundEnabled) speak("Find the letter " + target);
+
+        let choices = [target];
+        while(choices.length < 6) {
+            let random = alphabet[Math.floor(Math.random() * 26)];
+            if(!choices.includes(random)) choices.push(random);
+        }
+        choices.sort(() => Math.random() - 0.5);
+
+        choices.forEach(letter => {
+            const btn = document.createElement('button');
+            btn.className = 'letter-btn';
+            btn.innerText = letter;
+            btn.onclick = () => {
+                soundEnabled = true; // Enable sound on first button tap
+                checkLetter(letter);
+            };
+            grid.appendChild(btn);
+        });
+    }
+
+    function checkLetter(selected) {
+        if (selected === alphabet[currentIndex]) {
+            const data = associations[selected];
+            speak(selected + " is for " + data.word);
+            document.getElementById('reward-emoji').innerText = data.img;
+            document.getElementById('reward-text').innerText = selected + " is for " + data.word;
+            document.getElementById('reward-popup').style.display = 'block';
+
+            setTimeout(() => {
+                document.getElementById('reward-popup').style.display = 'none';
+                currentIndex++;
+                if(currentIndex >= 26) location.reload();
+                else setupRound();
+            }, 2500);
+        } else {
+            lives--;
+            speak("Try again!");
+            updateLives();
+            if(lives <= 0) document.getElementById('game-over').style.display = 'block';
+        }
+    }
+
+    function updateLives() {
+        let h = ""; for(let i=0; i<lives; i++) h += "❤️";
+        document.getElementById('life-display').innerText = h || "💔";
+    }
+
+    // This makes sure buttons appear even if everything else fails
+    window.onload = setupRound;
+</script>
+</body>
+</html>
